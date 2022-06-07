@@ -27,6 +27,7 @@
 
 <!--packages-start-->
 
+- xo-remote-parser minor
 - xo-cli minor
 - @xen-orchestra/xapi minor
 - xo-server minor
