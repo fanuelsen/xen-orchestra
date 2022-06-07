@@ -299,6 +299,10 @@ class RemoteAdapter {
     return this.#useVhdDirectory()
   }
 
+  getMergeMode() {
+    return this._handler.useRenameMerge ? VhdAbstract.MERGE_MODE_RENAME : VhdAbstract.MERGE_MODE_COPY
+  }
+
   async *getDisk(diskId) {
     const handler = this._handler
 

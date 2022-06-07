@@ -10,6 +10,7 @@ const { Disposable, pFromCallback } = require('promise-toolbox')
 
 const { openVhd, VhdDirectory } = require('../')
 const { createRandomFile, convertFromRawToVhd, convertToVhdDirectory } = require('../tests/utils')
+const { VhdAbstract } = require('./VhdAbstract')
 
 let tempDir = null
 
@@ -23,24 +24,26 @@ afterEach(async () => {
   await pFromCallback(cb => rimraf(tempDir, cb))
 })
 
-test('Can coalesce block', async () => {
-  const initalSize = 4
+test('Can coalesce block from file and directory', async () => {
+  const parentNbBlocks = 4
+  const childFileNbBlocks = 4
+  const childDirectoryNbBlocks = 4
   const parentrawFileName = `${tempDir}/randomfile`
   const parentFileName = `${tempDir}/parent.vhd`
   const parentDirectoryName = `${tempDir}/parent.dir.vhd`
 
-  await createRandomFile(parentrawFileName, initalSize)
+  await createRandomFile(parentrawFileName, parentNbBlocks * 2)
   await convertFromRawToVhd(parentrawFileName, parentFileName)
   await convertToVhdDirectory(parentrawFileName, parentFileName, parentDirectoryName)
 
   const childrawFileName = `${tempDir}/randomfile`
   const childFileName = `${tempDir}/childFile.vhd`
-  await createRandomFile(childrawFileName, initalSize)
+  await createRandomFile(childrawFileName, childFileNbBlocks * 2)
   await convertFromRawToVhd(childrawFileName, childFileName)
   const childRawDirectoryName = `${tempDir}/randomFile2.vhd`
   const childDirectoryFileName = `${tempDir}/childDirFile.vhd`
   const childDirectoryName = `${tempDir}/childDir.vhd`
-  await createRandomFile(childRawDirectoryName, initalSize)
+  await createRandomFile(childRawDirectoryName, childDirectoryNbBlocks * 2)
   await convertFromRawToVhd(childRawDirectoryName, childDirectoryFileName)
   await convertToVhdDirectory(childRawDirectoryName, childDirectoryFileName, childDirectoryName)
 
@@ -53,19 +56,24 @@ test('Can coalesce block', async () => {
     const childDirectoryVhd = yield openVhd(handler, childDirectoryName)
     await childDirectoryVhd.readBlockAllocationTable()
 
+    let childBlockData = (await childFileVhd.readBlock(0)).data
     await parentVhd.coalesceBlock(childFileVhd, 0)
     await parentVhd.writeFooter()
     await parentVhd.writeBlockAllocationTable()
     let parentBlockData = (await parentVhd.readBlock(0)).data
-    let childBlockData = (await childFileVhd.readBlock(0)).data
+    expect(parentBlockData.equals(childBlockData)).toEqual(true)
+    // block should still be present in child
+    childBlockData = (await childFileVhd.readBlock(0)).data
     expect(parentBlockData.equals(childBlockData)).toEqual(true)
 
-    await parentVhd.coalesceBlock(childDirectoryVhd, 0)
+    childBlockData = (await childDirectoryVhd.readBlock(1)).data
+    await parentVhd.coalesceBlock(childDirectoryVhd, 1, VhdAbstract.MERGE_MODE_RENAME)
     await parentVhd.writeFooter()
     await parentVhd.writeBlockAllocationTable()
-    parentBlockData = (await parentVhd.readBlock(0)).data
-    childBlockData = (await childDirectoryVhd.readBlock(0)).data
-    expect(parentBlockData).toEqual(childBlockData)
+    parentBlockData = (await parentVhd.readBlock(1)).data
+    expect(parentBlockData.equals(childBlockData)).toEqual(true)
+    // block should not be in child
+    await expect(childDirectoryVhd.readBlock(1)).rejects.toThrowError()
   })
 })
 

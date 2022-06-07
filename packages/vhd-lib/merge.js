@@ -14,6 +14,7 @@ const { Disposable } = require('promise-toolbox')
 const { asyncEach } = require('@vates/async-each')
 const { VhdDirectory } = require('./Vhd/VhdDirectory')
 const { VhdSynthetic } = require('./Vhd/VhdSynthetic')
+const { VhdAbstract } = require('./Vhd/VhdAbstract')
 
 const { warn } = createLogger('vhd-lib:merge')
 
@@ -37,12 +38,13 @@ module.exports = limitConcurrency(2)(async function merge(
   parentPath,
   childHandler,
   childPath,
-  { onProgress = noop } = {}
+  { onProgress = noop, mergeMode = VhdAbstract.MERGE_MODE_COPY } = {}
 ) {
   const mergeStatePath = dirname(parentPath) + '/' + '.' + basename(parentPath) + '.merge.json'
 
   return await Disposable.use(async function* () {
     let mergeState
+    let isResuming = false
     try {
       const mergeStateContent = await parentHandler.readFile(mergeStatePath)
       mergeState = JSON.parse(mergeStateContent)
@@ -75,6 +77,7 @@ module.exports = limitConcurrency(2)(async function merge(
       assert.strictEqual(childVhd.footer.diskType, DISK_TYPES.DIFFERENCING)
       assert.strictEqual(childVhd.header.blockSize, parentVhd.header.blockSize)
     } else {
+      isResuming = true
       // vhd should not have changed to resume
       assert.strictEqual(parentVhd.header.checksum, mergeState.parent.header)
       assert.strictEqual(childVhd.header.checksum, mergeState.child.header)
@@ -120,7 +123,20 @@ module.exports = limitConcurrency(2)(async function merge(
       toMerge,
       async blockId => {
         merging.add(blockId)
-        mergeState.mergedDataSize += await parentVhd.coalesceBlock(childVhd, blockId)
+        try {
+          mergeState.mergedDataSize += await parentVhd.coalesceBlock(childVhd, blockId, mergeMode)
+        } catch (error) {
+          if (mergeMode === VhdAbstract.MERGE_MODE_RENAME && error.code === 'ENOENT' && isResuming === true) {
+            // when resuming, the blocks moved since the last merge state write are
+            // not in the child anymore but it's ok
+
+            // @todo , should I read the parent block to ensure it's really here and readable
+            mergeState.mergedDataSize += parentVhd.header.blockSize
+          } else {
+            throw error
+          }
+        }
+
         merging.delete(blockId)
 
         onProgress({
