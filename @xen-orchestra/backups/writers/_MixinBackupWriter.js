@@ -36,6 +36,7 @@ exports.MixinBackupWriter = (BaseClass = Object) =>
               Task.warning(message, data)
             },
             lock: false,
+            mergeMode: this._adapter.getMergeMode(),
           })
         })
       } catch (error) {

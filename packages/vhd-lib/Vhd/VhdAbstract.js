@@ -22,7 +22,7 @@ const asyncIteratorToStream = require('async-iterator-to-stream')
 const { checksumStruct, fuFooter, fuHeader } = require('../_structs')
 const { isVhdAlias, resolveVhdAlias } = require('../aliases')
 
-exports.VhdAbstract = class VhdAbstract {
+class VhdAbstract {
   get bitmapSize() {
     return sectorsToBytes(this.sectorsOfBitmap)
   }
@@ -335,3 +335,8 @@ exports.VhdAbstract = class VhdAbstract {
     return stream
   }
 }
+
+VhdAbstract.MERGE_MODE_COPY = 1
+VhdAbstract.MERGE_MODE_RENAME = 2
+
+exports.VhdAbstract = VhdAbstract

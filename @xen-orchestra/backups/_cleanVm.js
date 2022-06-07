@@ -47,7 +47,7 @@ const computeVhdsSize = (handler, vhdPaths) =>
 //         |                              |
 //         \___________rename_____________/
 
-async function mergeVhdChain(chain, { handler, logInfo, remove, merge }) {
+async function mergeVhdChain(chain, { handler, logInfo, remove, merge, mergeMode }) {
   assert(chain.length >= 2)
   const chainCopy = [...chain]
   const parent = chainCopy.pop()
@@ -59,11 +59,12 @@ async function mergeVhdChain(chain, { handler, logInfo, remove, merge }) {
     let done, total
     const handle = setInterval(() => {
       if (done !== undefined) {
-        logInfo(`merging children in progress`, { children, parent, doneCount: done, totalCount: total})
+        logInfo(`merging children in progress`, { children, parent, doneCount: done, totalCount: total })
       }
     }, 10e3)
 
     const mergedSize = await mergeVhd(handler, parent, handler, children, {
+      mergeMode,
       onProgress({ done: d, total: t }) {
         done = d
         total = t
@@ -190,7 +191,15 @@ const defaultMergeLimiter = limitConcurrency(1)
 
 exports.cleanVm = async function cleanVm(
   vmDir,
-  { fixMetadata, remove, merge, mergeLimiter = defaultMergeLimiter, logInfo = noop, logWarn = console.warn }
+  {
+    fixMetadata,
+    remove,
+    merge,
+    mergeLimiter = defaultMergeLimiter,
+    mergeMode = VhdAbstract.MERGE_MODE_COPY,
+    logInfo = noop,
+    logWarn = console.warn,
+  }
 ) {
   const limitedMergeVhdChain = mergeLimiter(mergeVhdChain)
 
@@ -427,7 +436,7 @@ exports.cleanVm = async function cleanVm(
   const metadataWithMergedVhd = {}
   const doMerge = async () => {
     await asyncMap(toMerge, async chain => {
-      const merged = await limitedMergeVhdChain(chain, { handler, logInfo, logWarn, remove, merge })
+      const merged = await limitedMergeVhdChain(chain, { handler, logInfo, logWarn, remove, merge, mergeMode })
       if (merged !== undefined) {
         const metadataPath = vhdsToJSons[chain[0]] // all the chain should have the same metada file
         metadataWithMergedVhd[metadataPath] = true

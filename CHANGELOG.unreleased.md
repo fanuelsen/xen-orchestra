@@ -31,6 +31,8 @@
 <!--packages-start-->
 
 - xen-api patch
+- @xen-orchestra/backups minor
+- vhd-lib minor
 - xo-cli minor
 - @xen-orchestra/xapi minor
 - xo-server minor

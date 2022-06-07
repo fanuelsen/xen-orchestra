@@ -242,7 +242,7 @@ exports.VhdDirectory = class VhdDirectory extends VhdAbstract {
   // only works if data are in the same handler
   // and if the full block is modified in child ( which is the case whit xcp)
   // and if the compression type is same on both sides
-  async coalesceBlock(child, blockId) {
+  async coalesceBlock(child, blockId, mergeMode = VhdAbstract.MERGE_MODE_COPY) {
     if (
       !(child instanceof VhdDirectory) ||
       this._handler !== child._handler ||
@@ -250,10 +250,17 @@ exports.VhdDirectory = class VhdDirectory extends VhdAbstract {
     ) {
       return super.coalesceBlock(child, blockId)
     }
-    await this._handler.copy(
-      child._getChunkPath(child._getBlockPath(blockId)),
-      this._getChunkPath(this._getBlockPath(blockId))
-    )
+    if (mergeMode === VhdAbstract.MERGE_MODE_RENAME) {
+      await this._handler.rename(
+        child._getChunkPath(child._getBlockPath(blockId)),
+        this._getChunkPath(this._getBlockPath(blockId))
+      )
+    } else {
+      await this._handler.copy(
+        child._getChunkPath(child._getBlockPath(blockId)),
+        this._getChunkPath(this._getBlockPath(blockId))
+      )
+    }
     return sectorsToBytes(this.sectorsPerBlock)
   }
 

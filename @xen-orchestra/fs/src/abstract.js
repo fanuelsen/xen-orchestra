@@ -102,6 +102,10 @@ export default class RemoteHandlerAbstract {
     throw new Error('Not implemented')
   }
 
+  get useRenameMerge() {
+    return this._remote.useRenameMerge ?? false
+  }
+
   addPrefix(prefix) {
     prefix = normalizePath(prefix)
     return prefix === '/' ? this : new PrefixWrapper(this, prefix)
