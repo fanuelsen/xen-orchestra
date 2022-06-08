@@ -9,7 +9,7 @@ const assert = require('assert')
 const { DISK_TYPES, FOOTER_SIZE, HEADER_SIZE } = require('../_constants')
 const { openVhd } = require('../openVhd')
 const resolveRelativeFromFile = require('../_resolveRelativeFromFile')
-const { VhdAbstract } = require('./VhdAbstract')
+const { VhdAbstract, VhdDirectory } = require('./VhdAbstract')
 
 const VhdSynthetic = class VhdSynthetic extends VhdAbstract {
   #vhds = []
@@ -84,6 +84,10 @@ const VhdSynthetic = class VhdSynthetic extends VhdAbstract {
 
   _readParentLocatorData(id) {
     return this.#vhds[this.#vhds.length - 1]._readParentLocatorData(id)
+  }
+
+  isVhdDirectory() {
+    return this.#vhds.every(vhd => vhd instanceof VhdDirectory)
   }
 }
 

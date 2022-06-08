@@ -43,6 +43,8 @@ export default decorate([
       protocol: undefined,
       region: undefined,
       allowUnauthorized: undefined,
+      useVhdDirectory: undefined,
+      useMoveMerge: undefined,
     }),
     effects: {
       linkState,
@@ -69,6 +71,8 @@ export default decorate([
             protocol = remote.protocol || 'https',
             region = remote.region,
             allowUnauthorized = remote.allowUnauthorized,
+            useVhdDirectory = remote.useVhdDirectory,
+            useMoveMerge = remote.useMoveMerge,
           } = state
           let { path = remote.path } = state
           if (type === 's3') {
@@ -88,6 +92,8 @@ export default decorate([
               protocol,
               region,
               allowUnauthorized,
+              useVhdDirectory,
+              useMoveMerge,
             }),
             options: options !== '' ? options : null,
             proxy: proxyId,
@@ -155,6 +161,12 @@ export default decorate([
       setAllowUnauthorized(_, value) {
         this.state.allowUnauthorized = value
       },
+      setUseVhdDirectory(_, value) {
+        this.state.useVhdDirectory = value
+      },
+      setUseMoveMerge(_, value) {
+        this.state.useMoveMerge = value
+      },
     },
     computed: {
       formId: generateId,
@@ -184,6 +196,8 @@ export default decorate([
       type = remote.type || 'nfs',
       username = remote.username || '',
       allowUnauthorized = remote.allowUnauthorized || false,
+      useVhdDirectory = remote.useVhdDirectory || false,
+      useMoveMerge = remote.useMoveMerge || false,
     } = state
     return (
       <div>
@@ -451,6 +465,41 @@ export default decorate([
               </div>
             </fieldset>
           )}
+          <fieldset className='form-group form-group'>
+            <p>Any change in this part will make you lose access to existing data on this remote</p>
+            <div className='input-group form-group'>
+              <span className='align-middle'>
+                store VHD as multiple data block instead of a whole file (500 files per GB of backuped data)
+                <Tooltip
+                  content={
+                    'This will speed up merge, but your remote must be able to handle parallel access and the number of files'
+                  }
+                >
+                  <Icon icon='info' size='lg' />
+                </Tooltip>
+              </span>
+              <Toggle
+                className='align-middle pull-right'
+                onChange={effects.setInsecure}
+                value={useVhdDirectory === true}
+              />
+            </div>
+            {type !== 's3' && (
+              /* S3 does not have a move method */ <div className='input-group form-group'>
+                <span className='align-middle'>
+                  Use move instead of copy merge mode.
+                  <Tooltip content={"This will speed up merge, but you won't be able to restore a disk during merge"}>
+                    <Icon icon='info' size='lg' />
+                  </Tooltip>
+                </span>
+                <Toggle
+                  className='align-middle pull-right'
+                  onChange={effects.setInsecure}
+                  value={useMoveMerge === true}
+                />
+              </div>
+            )}
+          </fieldset>
           <div className='form-group'>
             <ActionButton
               btnStyle='primary'
