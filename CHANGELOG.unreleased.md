@@ -15,7 +15,7 @@
 
 - [New SR] Fix `method.startsWith is not a function` when creating an _ext_ SR
 - Import VDI content now works when there is a HTTP proxy between XO and the host (PR [#6261](https://github.com/vatesfr/xen-orchestra/pull/6261))
-- Fix(Ova export) : speed up export and don't create zombie task (PR [#6267](https://github.com/vatesfr/xen-orchestra/pull/6267))
+- Fix(Ova export) : speed up export, don't create zombie task, and _ova file does not contains an ovf_ (PR [#6267](https://github.com/vatesfr/xen-orchestra/pull/6267))
 
 ### Packages to release
 
